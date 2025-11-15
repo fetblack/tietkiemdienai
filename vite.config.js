@@ -1,17 +1,40 @@
 // vite.config.js
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: {
-      // Frontend gọi fetch("/api/hf-image") -> Vite proxy sang http://localhost:5174/api/hf-image
-      "/api": {
-        target: "http://localhost:5174",
-        changeOrigin: true,
+// ⚠ Vite tự động load .env.development hoặc .env.production dựa trên mode
+export default defineConfig(({ mode }) => {
+  // Load các biến môi trường từ .env tương ứng
+  const env = loadEnv(mode, process.cwd(), "");
+
+  return {
+    plugins: [react()],
+
+    // ============================
+    // 🔥 Dev server (npm run dev)
+    // ============================
+    server: {
+      proxy: {
+        "/api": {
+          // Dev sẽ gọi localhost
+          target: env.VITE_BACKEND_URL || "http://localhost:5174",
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
-  },
+
+    // ============================
+    // 🔥 Build cho Android
+    // ============================
+    define: {
+      "process.env": env, // đảm bảo inject biến môi trường đúng vào app
+    },
+
+    resolve: {
+      alias: {
+        "@": "/src",
+      },
+    },
+  };
 });

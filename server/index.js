@@ -3,81 +3,87 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
+import multer from "multer";
 
-// Đọc file .env.server
-dotenv.config({ path: ".env.server" });
+dotenv.config(); // đọc .env.server trên Render hoặc .env.local khi chạy local
 
 const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
 
-// ENV
-const HF_TOKEN = process.env.HF_TOKEN;
-const HF_MODEL_ID = process.env.HF_MODEL_ID || "microsoft/resnet-50";
 const PORT = process.env.PORT || 5174;
+const HF_TOKEN = process.env.HF_TOKEN;
+const HF_MODEL_ID = process.env.HF_MODEL_ID;
 
-// Kiểm tra token ngay khi khởi động
-if (!HF_TOKEN) {
-  console.error("❌ LỖI: Không tìm thấy HF_TOKEN trong .env.server");
-  process.exit(1);
-}
+// ===============================
+// 🔥 CORS – CHO PHÉP ANDROID & WEB
+// ===============================
 
-// CORS cho frontend Vite
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
-    methods: ["POST", "GET", "OPTIONS"]
+    origin: [
+      "*",                     // Cho phép tất cả (mobile cần)
+      "capacitor://localhost", // Android/iOS Capacitor
+      "http://localhost",      // Một số WebView Android dùng origin này
+      "http://localhost:5173", // Vite dev
+      "https://tietkiemdienai.onrender.com", // backend URL (optional)
+    ],
+    methods: ["GET", "POST", "OPTIONS"],
   })
 );
 
-// 👉 THÊM ROUTE TEST GET /
-app.get("/", (_req, res) => {
+// ===============================
+// Helper: Gọi HuggingFace
+// ===============================
+async function queryHuggingFace(imageBuffer) {
+  const hfUrl = `https://router.huggingface.co/hf-inference/${HF_MODEL_ID}`;
+
+  const response = await fetch(hfUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${HF_TOKEN}`,
+      "Content-Type": "application/octet-stream",
+    },
+    body: imageBuffer,
+  });
+
+  if (!response.ok) {
+    console.error("HF error:", await response.text());
+    throw new Error("HuggingFace API error");
+  }
+
+  return await response.json();
+}
+
+// ===============================
+// ROUTES
+// ===============================
+
+// Test server
+app.get("/", (req, res) => {
   res.send("HF proxy server is running");
 });
 
-// Nhận binary image
-app.use(
-  express.raw({
-    type: "application/octet-stream",
-    limit: "15mb"
-  })
-);
-
-app.post("/api/hf-image", async (req, res) => {
+// Main API
+app.post("/api/hf-image", upload.single("image"), async (req, res) => {
   try {
-    const hfUrl = `https://router.huggingface.co/hf-inference/models/${HF_MODEL_ID}`;
+    if (!req.file) {
+      return res.status(400).json({ error: "Missing image file" });
+    }
 
-    console.log("📤 Gửi ảnh tới HuggingFace Router...");
-    console.log("🔗 Model:", HF_MODEL_ID);
+    const imgBuffer = req.file.buffer;
+    const result = await queryHuggingFace(imgBuffer);
 
-    const hfRes = await fetch(hfUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
-        "Content-Type": "application/octet-stream",
-        Accept: "application/json",
-        "HF-Prediction-Timeout": "30000",
-        "X-Wait-For-Model": "true"
-      },
-      body: req.body
-    });
-
-    const text = await hfRes.text();
-    const contentType = hfRes.headers.get("content-type") || "text/plain";
-
-    console.log("📥 HF trả về status:", hfRes.status);
-
-    res.status(hfRes.status).set("content-type", contentType).send(text);
-  } catch (err) {
-    console.error("🔥 HF proxy error:", err);
-    res.status(500).json({
-      error: "Lỗi server khi gọi HuggingFace. Kiểm tra log server để biết thêm."
-    });
+    res.json(result);
+  } catch (error) {
+    console.error("Error processing image:", error.message);
+    res.status(500).json({ error: "Image processing failed" });
   }
 });
 
+// ===============================
+// START SERVER
+// ===============================
+
 app.listen(PORT, () => {
-  console.log("===============================================");
-  console.log("🚀 HuggingFace Proxy Server đang chạy!");
-  console.log("➡  API: http://localhost:" + PORT + "/api/hf-image");
-  console.log("➡  Model:", HF_MODEL_ID);
-  console.log("===============================================");
+  console.log(`Backend server running at http://localhost:${PORT}`);
 });
