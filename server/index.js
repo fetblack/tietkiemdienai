@@ -7,8 +7,13 @@ import fetch from "node-fetch";
 dotenv.config(); // local thì đọc .env / .env.server; trên Render dùng env dashboard
 
 const app = express();
-
+// Lấy port từ Render (hoặc sử dụng port mặc định 5174 cho dev)
 const PORT = process.env.PORT || 5174;
+
+// Đảm bảo rằng bạn không hardcode port vào, và để Render tự động cấp port cho backend
+app.listen(PORT, () => {
+  console.log(`Backend server đang chạy tại http://localhost:${PORT}`);
+});
 const HF_TOKEN = process.env.HF_TOKEN;
 const HF_MODEL_ID = process.env.HF_MODEL_ID || "microsoft/resnet-50";
 
