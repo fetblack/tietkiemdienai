@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Nền tổng thể mặc định khi thiếu background động */
+body {
+  @apply min-h-screen bg-gray-50 text-gray-900;
+}
+
+/* ===== Gradient động (mesh) ===== */
+.animated-gradient {
+  background-image:
+    radial-gradient(1200px 600px at 10% 10%, rgba(34,211,238,0.35), transparent 60%),
+    radial-gradient(900px 500px at 90% 20%, rgba(167,139,250,0.35), transparent 60%),
+    radial-gradient(900px 600px at 50% 80%, rgba(244,114,182,0.35), transparent 60%),
+    linear-gradient(120deg, #0ea5e9, #8b5cf6, #f472b6);
+  background-size: 200% 200%;
+  animation: gradientShift 18s ease-in-out infinite;
+  filter: saturate(1.05);
+}
+
+/* ===== Blobs mềm chuyển động ===== */
+.blob {
+  position: absolute;
+  width: clamp(260px, 25vw, 420px);
+  height: clamp(260px, 25vw, 420px);
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.45;
+  mix-blend-mode: screen;
+}
+.blob-1 {
+  top: 10%;
+  left: -5%;
+  background: radial-gradient(circle at 30% 30%, #22d3ee, rgba(34,211,238,0) 60%);
+  animation: float1 22s ease-in-out infinite;
+}
+.blob-2 {
+  top: 5%;
+  right: -8%;
+  background: radial-gradient(circle at 60% 40%, #a78bfa, rgba(167,139,250,0) 60%);
+  animation: float2 26s ease-in-out infinite;
+}
+.blob-3 {
+  bottom: 10%;
+  left: 20%;
+  background: radial-gradient(circle at 40% 60%, #f472b6, rgba(244,114,182,0) 60%);
+  animation: float3 24s ease-in-out infinite;
+}
+
+/* ===== Keyframes ===== */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes float1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%     { transform: translate(12%, 4%) scale(1.08); }
+}
+@keyframes float2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%     { transform: translate(-10%, 6%) scale(0.95); }
+}
+@keyframes float3 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%     { transform: translate(6%, -8%) scale(1.06); }
+}
+
+/* Tôn trọng Reduce Motion */
+@media (prefers-reduced-motion: reduce) {
+  .animated-gradient,
+  .blob-1, .blob-2, .blob-3 {
+    animation: none !important;
+  }
+}
