@@ -25,6 +25,7 @@ app.use(
       "capacitor://localhost", // Android/iOS Capacitor
       "http://localhost",      // một số WebView dùng origin này
       "http://localhost:5173", // Vite dev
+      "http://tietkiemdienai.onrender.com",
     ],
     methods: ["GET", "POST", "OPTIONS"],
   })
