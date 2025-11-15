@@ -2,7 +2,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch"; // vì Node 20 hỗ trợ fetch, nhưng dùng node-fetch vẫn an toàn hơn trên mọi môi trường
+import fetch from "node-fetch";
 
 // Đọc file .env.server
 dotenv.config({ path: ".env.server" });
@@ -28,6 +28,11 @@ app.use(
   })
 );
 
+// 👉 THÊM ROUTE TEST GET /
+app.get("/", (_req, res) => {
+  res.send("HF proxy server is running");
+});
+
 // Nhận binary image
 app.use(
   express.raw({
@@ -36,9 +41,6 @@ app.use(
   })
 );
 
-// =========================
-//     API ROUTE CHÍNH
-// =========================
 app.post("/api/hf-image", async (req, res) => {
   try {
     const hfUrl = `https://router.huggingface.co/hf-inference/models/${HF_MODEL_ID}`;
@@ -52,11 +54,7 @@ app.post("/api/hf-image", async (req, res) => {
         Authorization: `Bearer ${HF_TOKEN}`,
         "Content-Type": "application/octet-stream",
         Accept: "application/json",
-
-        // HF Router yêu cầu có timeout prediction
-        "HF-Prediction-Timeout": "30000", // 30s
-
-        // Chờ load model luôn (tránh 503)
+        "HF-Prediction-Timeout": "30000",
         "X-Wait-For-Model": "true"
       },
       body: req.body
@@ -67,7 +65,6 @@ app.post("/api/hf-image", async (req, res) => {
 
     console.log("📥 HF trả về status:", hfRes.status);
 
-    // Gửi nguyên văn kết quả về frontend
     res.status(hfRes.status).set("content-type", contentType).send(text);
   } catch (err) {
     console.error("🔥 HF proxy error:", err);
@@ -77,9 +74,6 @@ app.post("/api/hf-image", async (req, res) => {
   }
 });
 
-// =========================
-//     START SERVER
-// =========================
 app.listen(PORT, () => {
   console.log("===============================================");
   console.log("🚀 HuggingFace Proxy Server đang chạy!");
