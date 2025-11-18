@@ -24,24 +24,21 @@ app.use((req, _res, next) => {
   console.log(
     `[${new Date().toISOString()}] ${req.method} ${req.url} - UA: ${
       req.headers["user-agent"]
-    }`
+    }, Origin: ${req.headers.origin}`
   );
   next();
 });
 
-// 🔥 CORS: cho web + Android (Capacitor)
+// 🔥 CORS: mở hoàn toàn (vì không dùng cookie / auth bên browser)
 app.use(
   cors({
-    origin: [
-      "*",
-      "capacitor://localhost",
-      "http://localhost",
-      "http://localhost:5173",
-      "https://tietkiemdienai.onrender.com",
-    ],
+    origin: "*", // Cho phép mọi origin
     methods: ["GET", "POST", "OPTIONS"],
   })
 );
+
+// ❌ KHÔNG dùng app.options("*", ...) nữa – gây lỗi path-to-regexp ở Express mới
+// Nếu sau này cần custom OPTIONS cho 1 route cụ thể, dùng dạng: app.options("/api/hf-image", ...)
 
 // Nhận binary image từ frontend
 app.use(
